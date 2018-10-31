@@ -5,11 +5,8 @@ pub struct Match<'a> {
     pub string: &'a str,
 }
 
-pub fn find<'a, T: AsRef<str>>(needle: &str, stack: &'a[T]) -> Vec<Match<'a>> {
-    let mut matches: Vec<Match<'a>> = stack
-        .iter()
-        .filter_map(|hay| score(needle, hay))
-        .collect();
+pub fn find<'a, T: AsRef<str>>(needle: &str, stack: &'a [T]) -> Vec<Match<'a>> {
+    let mut matches: Vec<Match<'a>> = stack.iter().filter_map(|hay| score(needle, hay)).collect();
     // TODO: Refactor unwrap
     matches.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
     matches

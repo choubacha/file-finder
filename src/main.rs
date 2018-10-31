@@ -1,18 +1,18 @@
-extern crate walkdir;
 extern crate clap;
+extern crate walkdir;
 
 mod matcher;
+use clap::{App, Arg};
 use walkdir::WalkDir;
-use clap::{Arg, App};
 
 fn main() {
     let matches = App::new("File finder")
-        .arg(Arg::with_name("NEEDLE")
-             .help("The value to search for")
-             .takes_value(true)
-             .required(true)
-             )
-        .get_matches();
+        .arg(
+            Arg::with_name("NEEDLE")
+                .help("The value to search for")
+                .takes_value(true)
+                .required(true),
+        ).get_matches();
 
     let needle = matches.value_of("NEEDLE").expect("needle is required");
 
@@ -24,8 +24,8 @@ fn main() {
                 if let Some(path) = path.to_str() {
                     files.push(path.to_owned());
                 }
-            },
-            Err(_) => { /* no op */ },
+            }
+            Err(_) => { /* no op */ }
         }
     }
 
