@@ -1,12 +1,15 @@
 extern crate clap;
 extern crate walkdir;
-extern crate rayon;
 extern crate colored;
+extern crate crossbeam_channel;
 
 mod matcher;
+mod file_stream;
 use clap::{App, Arg};
-use walkdir::WalkDir;
 use colored::*;
+use crossbeam_channel as channel;
+use std::thread;
+use file_stream::{Msg, FileStream};
 
 fn main() {
     let matches = App::new("File finder")
@@ -17,31 +20,43 @@ fn main() {
                 .required(true),
         )
         .arg(
-            Arg::with_name("color")
-                .help("whether to display colored matches")
-                .long("color")
+            Arg::with_name("no-color")
+                .help("disable colored matches")
+                .long("no-color")
                 .short("c")
+        )
+        .arg(
+            Arg::with_name("include-hidden")
+                .help("include hidden matches")
+                .long("include-hidden")
+                .short("h")
         )
         .get_matches();
 
     let needle = matches.value_of("NEEDLE").expect("needle is required");
-    let is_colored = matches.is_present("color");
+    let is_colored = !matches.is_present("no-color");
+    let include_hidden = matches.is_present("include-hidden");
 
-    let mut files: Vec<String> = Vec::with_capacity(1000);
-    for entry in WalkDir::new(".") {
-        match entry {
-            Ok(entry) => {
-                let path = entry.path();
-                if let Some(path) = path.to_str() {
-                    files.push(path.to_owned());
-                }
-            }
-            Err(_) => { /* no op */ }
+    let (s, r) = channel::bounded(1024);
+    let handle = thread::spawn(move || {
+        let mut stream = FileStream::new();
+
+        if include_hidden { stream = stream.with_hidden(); }
+
+        stream.stream(|msg| s.send(msg));
+    });
+
+    let mut matches = Vec::with_capacity(50);
+    while let Some(Msg::File(path)) = r.recv() {
+        if let Some(m) = matcher::score(needle, &path.clone()) {
+            matches.push(m);
         }
     }
+    matches.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
 
-    let files = matcher::find(needle, &files);
-    for file in files {
+    let _ = handle.join().expect("should work");
+
+    for file in matches {
         if is_colored {
             let mut buf = String::new();
             for (index, c) in file.string.char_indices() {

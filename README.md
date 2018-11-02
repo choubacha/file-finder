@@ -2,7 +2,7 @@
 
 A simple CLI tool for finding files much like you would on github.
 
-## Installatino
+## Installation
 
 Use cargo to install. You can install cargo via rustup (https://rustup.rs/)
 
