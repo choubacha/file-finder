@@ -22,16 +22,15 @@ impl FileStream {
     }
 
     pub fn stream(self, f: impl Fn(Msg)) {
-        let walker = WalkDir::new(".").into_iter();
-        for entry in walker.filter_entry(|e| !self.is_hidden(&e)) {
-            match entry {
-                Ok(entry) => {
-                    let path = entry.path();
-                    if let Some(path) = path.to_str() {
-                        f(Msg::File(path.to_owned()));
-                    }
+        let walker = WalkDir::new(".")
+            .into_iter()
+            .filter_entry(|e| !self.is_hidden(&e))
+            .filter_map(|e| e.ok());
+        for entry in walker {
+            if entry.file_type().is_file() {
+                if let Some(path) = entry.path().to_str() {
+                    f(Msg::File(path.to_owned()));
                 }
-                Err(_) => { /* no op */ }
             }
         }
         f(Msg::EOF);
