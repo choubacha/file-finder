@@ -10,7 +10,7 @@ pub struct Match {
 /// 1. The closer successive letters are, the higher the score (max: 5)
 /// 2. Every matched character is 1 point
 /// 3. The ratio for the score should favors prefix matches (or those closer to the left)
-pub fn score<'a, T: AsRef<str>>(needle: &str, haystack: &'a T) -> Option<Match> {
+pub fn calc<'a, T: AsRef<str>>(needle: &str, haystack: &'a T) -> Option<Match> {
     let mut haystack_chars = haystack.as_ref().char_indices();
     let mut char_count = 0;
     let mut score = 0;
@@ -63,25 +63,25 @@ mod tests {
 
     #[test]
     fn scoring_a_string_test() {
-        let score = score("de", &"def").unwrap();
+        let score = calc("de", &"def").unwrap();
         assert_eq!(score.score, 12.0 / 2.0);
     }
 
     #[test]
     fn finds_no_match() {
-        assert_eq!(score("abc", &"def"), None);
-        assert_eq!(score("deq", &"def"), None);
+        assert_eq!(calc("abc", &"def"), None);
+        assert_eq!(calc("deq", &"def"), None);
     }
 
     #[test]
     fn records_matches_based_on_char_indices() {
-        let m = score("abc", &"會意字ab會意字c").unwrap();
+        let m = calc("abc", &"會意字ab會意字c").unwrap();
         assert_eq!(m.matches, [9, 10, 20])
     }
 
     #[test]
     fn does_not_match_if_spread_out() {
-        let score = score("abc", &"attttttttttttttttttttttbtttttttttttttttttttttttc");
+        let score = calc("abc", &"attttttttttttttttttttttbtttttttttttttttttttttttc");
         println!("{:?}", score);
         assert!(score.is_none());
     }

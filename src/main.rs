@@ -3,7 +3,7 @@ extern crate walkdir;
 extern crate colored;
 extern crate crossbeam_channel;
 
-mod matcher;
+mod score;
 mod file_stream;
 use clap::{App, Arg};
 use colored::*;
@@ -48,7 +48,7 @@ fn main() {
 
     let mut matches = Vec::with_capacity(50);
     while let Some(Msg::File(path)) = r.recv() {
-        if let Some(m) = matcher::score(needle, &path.clone()) {
+        if let Some(m) = score::calc(needle, &path.clone()) {
             matches.push(m);
         }
     }
