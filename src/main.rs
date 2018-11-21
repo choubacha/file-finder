@@ -31,11 +31,20 @@ fn main() {
                 .long("include-hidden")
                 .short("h")
         )
+        .arg(
+            Arg::with_name("number")
+                .help("the number of matches to return")
+                .default_value("10")
+                .long("number")
+                .short("n")
+                .takes_value(true)
+        )
         .get_matches();
 
     let needle = matches.value_of("NEEDLE").expect("needle is required");
     let is_colored = !matches.is_present("no-color");
     let include_hidden = matches.is_present("include-hidden");
+    let number_to_return: usize = matches.value_of("number").unwrap_or("10").parse().unwrap_or(10);
 
     let (s, r) = channel::bounded(1024);
     let handle = thread::spawn(move || {
@@ -46,7 +55,7 @@ fn main() {
         stream.stream(|msg| s.send(msg));
     });
 
-    let mut matches = Vec::with_capacity(50);
+    let mut matches = Vec::with_capacity(number_to_return);
     while let Some(Msg::File(path)) = r.recv() {
         if let Some(m) = score::calc(needle, &path.clone()) {
             matches.push(m);
@@ -56,7 +65,7 @@ fn main() {
 
     let _ = handle.join().expect("should work");
 
-    for file in matches {
+    for file in matches.iter().take(number_to_return) {
         if is_colored {
             let mut buf = String::new();
             for (index, c) in file.string.char_indices() {
