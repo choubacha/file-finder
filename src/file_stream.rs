@@ -4,6 +4,7 @@ use walkdir::{DirEntry, WalkDir};
 /// are optional but can limit the number of files and depth of search.
 pub struct FileStream {
     include_hidden: bool,
+    root: String,
 }
 
 pub enum Msg {
@@ -13,16 +14,24 @@ pub enum Msg {
 
 impl FileStream {
     pub fn new() -> FileStream {
-        FileStream { include_hidden: false }
+        FileStream {
+            include_hidden: false,
+            root: ".".to_string(),
+        }
     }
 
-    pub fn with_hidden(mut self) -> FileStream {
+    pub fn with_hidden(mut self) -> Self {
         self.include_hidden = true;
         self
     }
 
+    pub fn start_at(mut self, root: String) -> Self {
+        self.root = root;
+        self
+    }
+
     pub fn stream(self, f: impl Fn(Msg)) {
-        let walker = WalkDir::new(".")
+        let walker = WalkDir::new(&self.root)
             .into_iter()
             .filter_entry(|e| !self.is_hidden(&e))
             .filter_map(|e| e.ok());
@@ -37,7 +46,9 @@ impl FileStream {
     }
 
     fn is_hidden(&self, entry: &DirEntry) -> bool {
-        if self.include_hidden { return false }
+        if self.include_hidden {
+            return false;
+        }
 
         entry
             .file_name()

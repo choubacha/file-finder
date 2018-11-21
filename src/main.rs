@@ -1,15 +1,15 @@
 extern crate clap;
-extern crate walkdir;
 extern crate colored;
 extern crate crossbeam_channel;
+extern crate walkdir;
 
-mod score;
 mod file_stream;
+mod score;
 use clap::{App, Arg};
 use colored::*;
 use crossbeam_channel as channel;
+use file_stream::{FileStream, Msg};
 use std::thread;
-use file_stream::{Msg, FileStream};
 
 fn main() {
     let matches = App::new("File finder")
@@ -18,39 +18,50 @@ fn main() {
                 .help("The value to search for")
                 .takes_value(true)
                 .required(true),
-        )
-        .arg(
+        ).arg(
+            Arg::with_name("PATH")
+                .help("The path to start searching at. Defaults to current working directory")
+                .takes_value(true),
+        ).arg(
             Arg::with_name("no-color")
                 .help("disable colored matches")
                 .long("no-color")
-                .short("c")
-        )
-        .arg(
+                .short("c"),
+        ).arg(
             Arg::with_name("include-hidden")
                 .help("include hidden matches")
                 .long("include-hidden")
-                .short("h")
-        )
-        .arg(
+                .short("h"),
+        ).arg(
             Arg::with_name("number")
                 .help("the number of matches to return")
                 .default_value("10")
                 .long("number")
                 .short("n")
-                .takes_value(true)
-        )
-        .get_matches();
+                .takes_value(true),
+        ).get_matches();
 
     let needle = matches.value_of("NEEDLE").expect("needle is required");
     let is_colored = !matches.is_present("no-color");
     let include_hidden = matches.is_present("include-hidden");
-    let number_to_return: usize = matches.value_of("number").unwrap_or("10").parse().unwrap_or(10);
+    let number_to_return: usize = matches
+        .value_of("number")
+        .unwrap_or("10")
+        .parse()
+        .unwrap_or(10);
+    let cwd = std::env::current_dir().expect("Failed to load cwd");
+    let root = matches
+        .value_of("PATH")
+        .unwrap_or(cwd.to_str().expect("should be a string"))
+        .to_string();
 
     let (s, r) = channel::bounded(1024);
     let handle = thread::spawn(move || {
-        let mut stream = FileStream::new();
+        let mut stream = FileStream::new().start_at(root.to_string());
 
-        if include_hidden { stream = stream.with_hidden(); }
+        if include_hidden {
+            stream = stream.with_hidden();
+        }
 
         stream.stream(|msg| s.send(msg));
     });
