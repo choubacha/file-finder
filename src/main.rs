@@ -12,6 +12,8 @@ use file_stream::{FileStream, Msg};
 use std::thread;
 
 fn main() {
+    let cwd = std::env::current_dir().expect("Failed to load cwd");
+    let cwd = cwd.to_str().expect("Must have a cwd");
     let matches = App::new("File finder")
         .arg(
             Arg::with_name("NEEDLE")
@@ -20,6 +22,7 @@ fn main() {
                 .required(true),
         ).arg(
             Arg::with_name("PATH")
+                .default_value(&cwd)
                 .help("The path to start searching at. Defaults to current working directory")
                 .takes_value(true),
         ).arg(
@@ -49,11 +52,12 @@ fn main() {
         .unwrap_or("10")
         .parse()
         .unwrap_or(10);
-    let cwd = std::env::current_dir().expect("Failed to load cwd");
     let root = matches
         .value_of("PATH")
-        .unwrap_or(cwd.to_str().expect("should be a string"))
+        .unwrap_or(".")
         .to_string();
+
+    dbg!(root.to_string());
 
     let (s, r) = channel::bounded(1024);
     let handle = thread::spawn(move || {
